@@ -1,47 +1,111 @@
 use std::{
     env,
-    io::{stderr, stdin, Read, Write},
+    io::{stdin, Read, Write},
+    path::{Path, PathBuf},
 };
+use thiserror::Error;
+
+mod scanner;
+
+#[derive(Error, Debug)]
+enum ELoxError {
+    #[error("{0}")]
+    ScannerError(scanner::ScannerError),
+    #[error(" Failed to read: {0}")]
+    FileNotFoundError(std::io::Error),
+}
+
+#[derive(Error, Debug)]
+#[error("{path}:{error}")]
+struct LoxError {
+    path: PathBuf,
+    error: ELoxError,
+}
+
+impl From<scanner::ScannerError> for ELoxError {
+    fn from(error: scanner::ScannerError) -> Self {
+        ELoxError::ScannerError(error)
+    }
+}
+
+impl From<std::io::Error> for ELoxError {
+    fn from(error: std::io::Error) -> Self {
+        ELoxError::FileNotFoundError(error)
+    }
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    match args.len() {
+    let result = match args.len() {
         1 => run_prompt(),
         2 => run_file(&args[1]),
         _ => {
-            writeln!(stderr(), "Usage: jlox [script]").unwrap();
+            eprintln!("Usage: jlox [script]");
+            Ok(())
         }
     };
+
+    if let Err(error) = result {
+        eprintln!("{}", error)
+    }
 }
 
-fn run_prompt() {
+fn run_prompt() -> Result<(), LoxError> {
     loop {
         print!("> ");
         std::io::stdout().flush().unwrap();
         let mut line = String::new();
+        let path = Path::new("<stdin>");
+
         match stdin().read_line(&mut line) {
-            Ok(_) => run(&line),
-            Err(_) => break,
+            Ok(0) => break,
+            Ok(_) => match run(path, &line) {
+                Ok(_) => continue,
+                Err(error) => eprintln!("{}", error),
+            },
+            Err(error) => {
+                return Err(LoxError {
+                    path: path.into(),
+                    error: error.into(),
+                })
+            }
         }
     }
+
+    Ok(())
 }
 
-fn run_file(path: &str) {
+fn run_file(path: &str) -> Result<(), LoxError> {
     let path: std::path::PathBuf = path.into();
 
     let mut source = String::new();
-    if let Err(error) = std::fs::File::open(&path)
-        .and_then(|mut file| file.read_to_string(&mut source))
-        .map(|_| run(&source))
-    {
-        writeln!(
-            stderr(),
-            "Failed to read source file @ {}: {}",
-            path.display(),
-            error
-        )
-        .unwrap();
+
+    match std::fs::File::open(&path) {
+        Ok(mut file) => match file.read_to_string(&mut source) {
+            Ok(_) => run(&path, &source),
+            Err(error) => Err(LoxError {
+                path,
+                error: error.into(),
+            }),
+        },
+        Err(error) => Err(LoxError {
+            path,
+            error: error.into(),
+        }),
     }
 }
 
-fn run(source: &str) {}
+fn run(path: &Path, source: &str) -> Result<(), LoxError> {
+    match scanner::scan_tokens(source) {
+        Ok(tokens) => {
+            for token in &tokens {
+                println!("{:?}", token)
+            }
+            Ok(())
+        }
+        Err(error) => Err(LoxError {
+            path: path.into(),
+            error: error.into(),
+        }),
+    }
+}
