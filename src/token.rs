@@ -55,6 +55,11 @@ pub enum Literal {
     Number(f64),
 }
 
+impl From<&str> for Literal {
+    fn from(string: &str) -> Self {
+        Literal::String(string.into())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token<'source> {
@@ -62,6 +67,31 @@ pub struct Token<'source> {
     pub lexeme: &'source str,
     pub literal: Option<Literal>,
     pub line: usize,
+}
+
+impl<'source> Token<'source> {
+    pub fn new(token_type: TokenType, lexeme: &'source str, line: usize) -> Self {
+        Token {
+            token_type,
+            lexeme,
+            literal: None,
+            line,
+        }
+    }
+
+    pub fn new_literal(
+        token_type: TokenType,
+        lexeme: &'source str,
+        literal: Literal,
+        line: usize,
+    ) -> Self {
+        Token {
+            token_type,
+            lexeme,
+            literal: Some(literal),
+            line,
+        }
+    }
 }
 
 impl<'source> Display for Token<'source> {
