@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TokenType {
     // Single-character tokens
     LeftParen,
@@ -49,14 +49,14 @@ pub enum TokenType {
     While,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
     String(String),
     Number(f64),
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token<'source> {
     pub token_type: TokenType,
     pub lexeme: &'source str,

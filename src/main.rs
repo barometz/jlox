@@ -10,8 +10,8 @@ mod token;
 
 #[derive(Error, Debug)]
 enum ELoxError {
-    #[error("{0}")]
-    ScannerError(scanner::ScannerError),
+    #[error("{0:?}")]
+    ScannerError(Vec<scanner::ScannerError>),
     #[error(" Failed to read: {0}")]
     FileNotFoundError(std::io::Error),
 }
@@ -23,8 +23,8 @@ struct LoxError {
     error: ELoxError,
 }
 
-impl From<scanner::ScannerError> for ELoxError {
-    fn from(error: scanner::ScannerError) -> Self {
+impl From<Vec<scanner::ScannerError>> for ELoxError {
+    fn from(error: Vec<scanner::ScannerError>) -> Self {
         ELoxError::ScannerError(error)
     }
 }
@@ -106,9 +106,9 @@ fn run(path: &Path, source: &str) -> Result<(), LoxError> {
             }
             Ok(())
         }
-        Err(error) => Err(LoxError {
+        Err(errors) => Err(LoxError {
             path: path.into(),
-            error: error.into(),
+            error: errors.into(),
         }),
     }
 }
