@@ -6,6 +6,7 @@ use std::{
 use thiserror::Error;
 
 mod scanner;
+mod token;
 
 #[derive(Error, Debug)]
 enum ELoxError {
@@ -96,10 +97,12 @@ fn run_file(path: &str) -> Result<(), LoxError> {
 }
 
 fn run(path: &Path, source: &str) -> Result<(), LoxError> {
-    match scanner::scan_tokens(source) {
+    let mut scanner = scanner::Scanner::new(source);
+
+    match scanner.scan_tokens() {
         Ok(tokens) => {
             for token in &tokens {
-                println!("{:?}", token)
+                println!("{}", token)
             }
             Ok(())
         }
