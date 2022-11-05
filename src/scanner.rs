@@ -1,6 +1,31 @@
+use std::collections::HashMap;
+
+use lazy_static::lazy_static;
 use thiserror::Error;
 
 use crate::token::{Literal, Token, TokenType};
+
+lazy_static! {
+    static ref KEYWORDS: HashMap<&'static str, TokenType> = HashMap::from([
+        ("and", TokenType::And),
+        ("class", TokenType::Class),
+        ("else", TokenType::Else),
+        ("false", TokenType::False),
+        ("for", TokenType::For),
+        ("fun", TokenType::Fun),
+        ("if", TokenType::If),
+        ("nil", TokenType::Nil),
+        ("or", TokenType::Or),
+        ("print", TokenType::Print),
+        ("return", TokenType::Return),
+        ("super", TokenType::Super),
+        ("and", TokenType::And),
+        ("this", TokenType::This),
+        ("true", TokenType::True),
+        ("var", TokenType::Var),
+        ("while", TokenType::While),
+    ]);
+}
 
 #[derive(Clone, Error, Debug)]
 #[error("{line}: {message}")]
@@ -96,10 +121,9 @@ impl<'source> Scanner<'source> {
         while let Some(c) = self.advance() {
             match c {
                 '"' => {
-                    let result = Ok(self.new_literal_token(
-                        TokenType::String,
-                        self.source[self.start + 1..self.current - 1].into(),
-                    ));
+                    let lexeme = self.lexeme();
+                    let result = Ok(self
+                        .new_literal_token(TokenType::String, lexeme[1..lexeme.len() - 1].into()));
                     self.line = line;
                     return result;
                 }
@@ -145,8 +169,23 @@ impl<'source> Scanner<'source> {
 
         self.new_literal_token(
             TokenType::Number,
-            Literal::Number(self.source[self.start..self.current].parse().unwrap()),
+            Literal::Number(self.lexeme().parse().unwrap()),
         )
+    }
+
+    fn identifier(&mut self) -> Token<'source> {
+        while let Some(c) = self.peek() {
+            if c.is_alphanumeric() || c == '_' {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        match KEYWORDS.get(self.lexeme()) {
+            Some(token_type) => self.new_token(*token_type),
+            None => self.new_token(TokenType::Identifier),
+        }
     }
 
     fn scan_token(&mut self) -> ScanResult<'source> {
@@ -197,28 +236,24 @@ impl<'source> Scanner<'source> {
                 Err(error) => Error(error),
             },
             Some(c) if c.is_ascii_digit() => Token(self.number()),
+            Some(c) if c.is_alphabetic() || c == '_' => Token(self.identifier()),
             Some(c) => Error(ScannerError {
                 line: self.line,
-                message: format!("Unexpected token {}", c),
+                message: format!("Unexpected character {}", c),
             }),
         }
     }
 
+    fn lexeme(&self) -> &'source str {
+        &self.source[self.start..self.current]
+    }
+
     fn new_token(&self, token_type: TokenType) -> Token<'source> {
-        Token::new(
-            token_type,
-            &self.source[self.start..self.current],
-            self.line,
-        )
+        Token::new(token_type, self.lexeme(), self.line)
     }
 
     fn new_literal_token(&self, token_type: TokenType, literal: Literal) -> Token<'source> {
-        Token::new_literal(
-            token_type,
-            &self.source[self.start..self.current],
-            literal,
-            self.line,
-        )
+        Token::new_literal(token_type, self.lexeme(), literal, self.line)
     }
 }
 
@@ -239,12 +274,12 @@ mod test {
 
     #[test]
     fn tokenize_unknown_char() {
-        let mut under_test = Scanner::new("(}-%+_+");
+        let mut under_test = Scanner::new("%(}-+&+");
         let tokens = under_test.scan_tokens();
         assert!(tokens.is_err());
         let errors = tokens.unwrap_err();
-        assert_eq!(errors[0].message, "Unexpected token %");
-        assert_eq!(errors[1].message, "Unexpected token _");
+        assert_eq!(errors[0].message, "Unexpected character %");
+        assert_eq!(errors[1].message, "Unexpected character &");
     }
 
     #[test]
@@ -305,5 +340,16 @@ mod test {
         test("2.0", 2.0);
         test("0000", 0.0);
         test("0.6+", 0.6);
+    }
+
+    #[test]
+    fn tokenize_identifiers() {
+        let mut under_test = Scanner::new("for class variable_name1");
+        let tokens = under_test.scan_tokens();
+        assert!(tokens.is_ok());
+        let tokens = tokens.unwrap();
+        assert!(tokens.contains(&Token::new(TokenType::For, "for", 1)));
+        assert!(tokens.contains(&Token::new(TokenType::Class, "class", 1)));
+        assert!(tokens.contains(&Token::new(TokenType::Identifier, "variable_name1", 1)));
     }
 }
