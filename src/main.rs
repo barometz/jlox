@@ -5,6 +5,7 @@ use std::{
 };
 use thiserror::Error;
 
+mod expr;
 mod scanner;
 mod token;
 
