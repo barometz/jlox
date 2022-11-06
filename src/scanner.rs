@@ -41,11 +41,10 @@ enum ScanResult<'source> {
 }
 
 pub struct Scanner<'source> {
+    /// View of the source that remains to be scanned
     source: &'source str,
     tokens: Vec<Token<'source>>,
 
-    /// First character in the lexeme being scanned
-    start: usize,
     /// Current character in the lexeme being scanned
     current: usize,
     /// Line number of the current lexeme
@@ -57,7 +56,6 @@ impl<'source> Scanner<'source> {
         Scanner {
             source,
             tokens: Vec::<Token<'source>>::new(),
-            start: 0,
             current: 0,
             line: 1,
         }
@@ -67,7 +65,8 @@ impl<'source> Scanner<'source> {
         let mut errors = Vec::<ScannerError>::new();
 
         while !self.is_at_end() {
-            self.start = self.current;
+            self.source = &self.source[self.current..];
+            self.current = 0;
             match self.scan_token() {
                 ScanResult::Skip => continue,
                 ScanResult::Error(error) => errors.push(error),
@@ -268,7 +267,7 @@ impl<'source> Scanner<'source> {
     }
 
     fn lexeme(&self) -> &'source str {
-        &self.source[self.start..self.current]
+        &self.source[..self.current]
     }
 
     fn new_token(&self, token_type: TokenType) -> Token<'source> {
