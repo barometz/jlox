@@ -114,6 +114,28 @@ impl<'source> Scanner<'source> {
         false
     }
 
+    fn block_comment(&mut self) -> Result<(), ScannerError> {
+        let mut line = self.line;
+
+        while let Some(c) = self.advance() {
+            match c {
+                '*' if self.match_next('/') => {
+                    self.line = line;
+                    return Ok(());
+                }
+                '\n' => line += 1,
+                _ => continue,
+            }
+        }
+
+        let result = ScannerError {
+            line: self.line,
+            message: "Unterminated block comment".into(),
+        };
+        self.line = line;
+        Err(result)
+    }
+
     fn string(&mut self) -> Result<Token<'source>, ScannerError> {
         let mut line = self.line;
 
@@ -214,16 +236,17 @@ impl<'source> Scanner<'source> {
             Some('=') => Token(self.new_token(TokenType::Equal)),
             Some('<') => Token(self.new_token(TokenType::Less)),
             Some('>') => Token(self.new_token(TokenType::Greater)),
-            Some('/') => {
-                if self.match_next('/') {
-                    while self.peek() != Some('\n') && !self.is_at_end() {
-                        self.advance();
-                    }
-                    Skip
-                } else {
-                    Token(self.new_token(TokenType::Slash))
+            Some('/') if self.match_next('/') => {
+                while self.peek() != Some('\n') && !self.is_at_end() {
+                    self.advance();
                 }
+                Skip
             }
+            Some('/') if self.match_next('*') => match self.block_comment() {
+                Ok(_) => Skip,
+                Err(error) => Error(error),
+            },
+            Some('/') => Token(self.new_token(TokenType::Slash)),
             Some(' ') => Skip,
             Some('\t') => Skip,
             Some('\r') => Skip,
@@ -301,6 +324,20 @@ mod test {
         let tokens = tokens.unwrap();
         assert!(tokens.contains(&Token::new(TokenType::Plus, "+", 1)));
         assert!(tokens.contains(&Token::new(TokenType::Equal, "=", 2)));
+    }
+
+    #[test]
+    fn tokenize_block_comment() {
+        let mut under_test = Scanner::new(
+            r#"+ /* comment
+            more /*comment* */
+            -"#,
+        );
+        let tokens = under_test.scan_tokens();
+        assert!(tokens.is_ok());
+        let tokens = tokens.unwrap();
+        assert!(tokens.contains(&Token::new(TokenType::Plus, "+", 1)));
+        assert!(tokens.contains(&Token::new(TokenType::Minus, "-", 3)));
     }
 
     #[test]
