@@ -284,14 +284,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn tokenize_singles() {
+    fn tokenize_singles() -> Result<(), Vec<ScannerError>> {
         let mut under_test = Scanner::new("(}-");
-        let tokens = under_test.scan_tokens();
-        assert!(tokens.is_ok());
-        let tokens = tokens.unwrap();
+        let tokens = under_test.scan_tokens()?;
         assert!(tokens.contains(&Token::new(TokenType::LeftParen, "(", 1)));
         assert!(tokens.contains(&Token::new(TokenType::RightBrace, "}", 1)));
         assert!(tokens.contains(&Token::new(TokenType::Minus, "-", 1)));
+        Ok(())
     }
 
     #[test]
@@ -305,49 +304,44 @@ mod test {
     }
 
     #[test]
-    fn tokenize_two_char_ops() {
+    fn tokenize_two_char_ops() -> Result<(), Vec<ScannerError>> {
         let mut under_test = Scanner::new("!!=+");
-        let tokens = under_test.scan_tokens();
-        assert!(tokens.is_ok());
-        let tokens = tokens.unwrap();
+        let tokens = under_test.scan_tokens()?;
         assert!(tokens.contains(&Token::new(TokenType::Bang, "!", 1)));
         assert!(tokens.contains(&Token::new(TokenType::BangEqual, "!=", 1)));
         assert!(tokens.contains(&Token::new(TokenType::Plus, "+", 1)));
+        Ok(())
     }
 
     #[test]
-    fn tokenize_comment_whitespace() {
+    fn tokenize_comment_whitespace() -> Result<(), Vec<ScannerError>> {
         let mut under_test = Scanner::new("+// testing\n=");
-        let tokens = under_test.scan_tokens();
-        assert!(tokens.is_ok());
-        let tokens = tokens.unwrap();
+        let tokens = under_test.scan_tokens()?;
         assert!(tokens.contains(&Token::new(TokenType::Plus, "+", 1)));
         assert!(tokens.contains(&Token::new(TokenType::Equal, "=", 2)));
+        Ok(())
     }
 
     #[test]
-    fn tokenize_block_comment() {
+    fn tokenize_block_comment() -> Result<(), Vec<ScannerError>> {
         let mut under_test = Scanner::new(
             r#"+ /* comment
             more /*comment* */
             -"#,
         );
-        let tokens = under_test.scan_tokens();
-        assert!(tokens.is_ok());
-        let tokens = tokens.unwrap();
+        let tokens = under_test.scan_tokens()?;
         assert!(tokens.contains(&Token::new(TokenType::Plus, "+", 1)));
         assert!(tokens.contains(&Token::new(TokenType::Minus, "-", 3)));
+        Ok(())
     }
 
     #[test]
-    fn tokenize_multiline_string() {
+    fn tokenize_multiline_string() -> Result<(), Vec<ScannerError>> {
         let mut under_test = Scanner::new(
             r#""multiline
 + tokens"+"#,
         );
-        let tokens = under_test.scan_tokens();
-        assert!(tokens.is_ok());
-        let tokens = tokens.unwrap();
+        let tokens = under_test.scan_tokens()?;
         assert!(tokens.contains(&Token::new_literal(
             TokenType::String,
             "\"multiline\n+ tokens\"",
@@ -355,6 +349,7 @@ mod test {
             1
         )));
         assert!(tokens.contains(&Token::new(TokenType::Plus, "+", 2)));
+        Ok(())
     }
 
     #[test]
@@ -379,13 +374,12 @@ mod test {
     }
 
     #[test]
-    fn tokenize_identifiers() {
+    fn tokenize_identifiers() -> Result<(), Vec<ScannerError>> {
         let mut under_test = Scanner::new("for class variable_name1");
-        let tokens = under_test.scan_tokens();
-        assert!(tokens.is_ok());
-        let tokens = tokens.unwrap();
+        let tokens = under_test.scan_tokens()?;
         assert!(tokens.contains(&Token::new(TokenType::For, "for", 1)));
         assert!(tokens.contains(&Token::new(TokenType::Class, "class", 1)));
         assert!(tokens.contains(&Token::new(TokenType::Identifier, "variable_name1", 1)));
+        Ok(())
     }
 }
