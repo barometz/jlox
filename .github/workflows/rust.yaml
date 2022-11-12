@@ -8,8 +8,8 @@ on:
     branches: ["main"]
 
 jobs:
-  rust-clippy-analyze:
-    name: Run rust-clippy analyzing
+  build-and-test:
+    name: Build and test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
