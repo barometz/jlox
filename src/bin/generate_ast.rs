@@ -8,6 +8,37 @@ static EXPRESSION_GRAMMAR: &[&str] = &[
     "Unary    : operator: Token<'s>, operand: Expr<'s>",
 ];
 
+struct Symbol {
+    name: String,
+    symbol_type: String,
+}
+
+struct Rule {
+    head: String,
+    body: Vec<Symbol>,
+}
+
+fn parse_grammar(input: &[&str]) -> Vec<Rule> {
+    let mut result = Vec::<Rule>::new();
+    for rule in input {
+        let (head, body) = rule.split_once(':').unwrap();
+        result.push(Rule {
+            head: head.trim().into(),
+            body: body
+                .split(',')
+                .map(|s| {
+                    let (name, symbol_type) = s.split_once(':').unwrap();
+                    Symbol {
+                        name: name.trim().into(),
+                        symbol_type: symbol_type.trim().into(),
+                    }
+                })
+                .collect(),
+        });
+    }
+    result
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 2 {
@@ -22,11 +53,12 @@ fn main() -> ExitCode {
         .create(true)
         .open(&ast_path);
 
+    let grammar = parse_grammar(EXPRESSION_GRAMMAR);
     match file {
         Ok(mut file) => match writeln!(file, "use crate::token::{{Literal, Token}};")
-            .and_then(|_| define_ast(&mut file, EXPRESSION_GRAMMAR))
-            .and_then(|_| define_accepter(&mut file, EXPRESSION_GRAMMAR))
-            .and_then(|_| define_visitor(&mut file, EXPRESSION_GRAMMAR))
+            .and_then(|_| define_ast(&mut file, &grammar))
+            .and_then(|_| define_accepter(&mut file, &grammar))
+            .and_then(|_| define_visitor(&mut file, &grammar))
         {
             Ok(_) => ExitCode::SUCCESS,
             Err(error) => {
@@ -46,16 +78,13 @@ fn main() -> ExitCode {
     }
 }
 
-fn define_ast(out: &mut dyn Write, grammar: &[&str]) -> Result<(), std::io::Error> {
+fn define_ast(out: &mut dyn Write, grammar: &[Rule]) -> Result<(), std::io::Error> {
     writeln!(out, "pub enum Expr<'s> {{")?;
 
     for rule in grammar {
-        let (symbol, expression) = rule.split_once(':').unwrap();
-        writeln!(out, "    {} {{", symbol.trim())?;
-        let fields = expression.split(',');
-        for field in fields {
-            let (label, field_type) = field.split_once(':').unwrap();
-            writeln!(out, "        {}: Box<{}>,", label.trim(), field_type.trim())?;
+        writeln!(out, "    {} {{", rule.head)?;
+        for symbol in &rule.body {
+            writeln!(out, "        {}: Box<{}>,", symbol.name, symbol.symbol_type)?;
         }
         writeln!(out, "    }},")?;
     }
@@ -64,7 +93,7 @@ fn define_ast(out: &mut dyn Write, grammar: &[&str]) -> Result<(), std::io::Erro
     Ok(())
 }
 
-fn define_accepter(out: &mut dyn Write, grammar: &[&str]) -> Result<(), std::io::Error> {
+fn define_accepter(out: &mut dyn Write, grammar: &[Rule]) -> Result<(), std::io::Error> {
     // Not sure it makes a lot of sense to call this a visitor pattern - it
     // certainly isn't what Crafting Interpreters or Design Patterns describe,
     // and it doesn't match the Rust Design Patterns description either.
@@ -78,20 +107,19 @@ fn define_accepter(out: &mut dyn Write, grammar: &[&str]) -> Result<(), std::io:
     writeln!(out, "        match self {{")?;
 
     for rule in grammar {
-        let (symbol, expression) = rule.split_once(':').unwrap();
-        let fields = expression.split(',');
-
-        let match_fields = fields
-            .map(|f| f.split_once(':').unwrap().0.trim())
+        let match_fields = rule
+            .body
+            .iter()
+            .map(|s| s.name.as_str())
             .collect::<Vec<&str>>()
             .join(", ");
 
         writeln!(
             out,
             "            Expr::{} {{ {} }} => visitor.visit_{}({}),",
-            symbol.trim(),
+            rule.head,
             match_fields,
-            symbol.trim().to_ascii_lowercase(),
+            rule.head.to_ascii_lowercase(),
             match_fields,
         )?;
     }
@@ -102,22 +130,17 @@ fn define_accepter(out: &mut dyn Write, grammar: &[&str]) -> Result<(), std::io:
     Ok(())
 }
 
-fn define_visitor(out: &mut dyn Write, grammar: &[&str]) -> Result<(), std::io::Error> {
+fn define_visitor(out: &mut dyn Write, grammar: &[Rule]) -> Result<(), std::io::Error> {
     writeln!(out, "pub trait ExprVisitor<'s, R> {{")?;
 
-    // lots of code duplication here, but let's write everything once before
-    // trying to factor out the generic bits
     for rule in grammar {
-        let (symbol, expression) = rule.split_once(':').unwrap();
-        let fields = expression.split(',');
         write!(
             out,
             "    fn visit_{}(&mut self",
-            symbol.trim().to_ascii_lowercase()
+            rule.head.to_ascii_lowercase()
         )?;
-        for field in fields {
-            let (label, field_type) = field.split_once(':').unwrap();
-            write!(out, ", {}: &{}", label.trim(), field_type.trim())?;
+        for symbol in &rule.body {
+            write!(out, ", {}: &{}", symbol.name, symbol.symbol_type)?;
         }
         writeln!(out, ") -> R;")?;
     }
