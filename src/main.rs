@@ -5,6 +5,8 @@ use std::{
 };
 use thiserror::Error;
 
+mod ast_printer;
+mod expr;
 mod scanner;
 mod token;
 

@@ -2,8 +2,12 @@
 name = "jlox"
 version = "0.1.0"
 edition = "2021"
+default-run = "jlox"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "generate_ast"
 
 [dependencies]
 lazy_static = "1.4.0"
