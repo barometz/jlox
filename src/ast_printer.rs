@@ -36,10 +36,17 @@ impl ExprVisitor<String> for AstPrinter {
     }
 
     fn visit_literal(&mut self, value: &Literal) -> String {
-        // TODO: figure out what to do with nil, for which the book uses Java's null
         match value {
             Literal::String(s) => s.clone(),
             Literal::Number(n) => n.to_string(),
+            Literal::Bool(value) => {
+                if *value {
+                    "true".into()
+                } else {
+                    "false".into()
+                }
+            }
+            Literal::Nil() => "nil".into(),
         }
     }
 

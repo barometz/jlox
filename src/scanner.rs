@@ -204,6 +204,15 @@ impl<'source> Scanner<'source> {
         }
 
         match KEYWORDS.get(self.lexeme()) {
+            Some(token_type) if token_type == &TokenType::True => {
+                self.new_literal_token(*token_type, Literal::Bool(true))
+            }
+            Some(token_type) if token_type == &TokenType::False => {
+                self.new_literal_token(*token_type, Literal::Bool(false))
+            }
+            Some(token_type) if token_type == &TokenType::Nil => {
+                self.new_literal_token(*token_type, Literal::Nil())
+            }
             Some(token_type) => self.new_token(*token_type),
             None => self.new_token(TokenType::Identifier),
         }

@@ -29,22 +29,22 @@ pub enum TokenType {
     Identifier,
     String,
     Number,
+    True,
+    False,
+    Nil,
 
     // Keywords
     And,
     Class,
     Else,
-    False,
     Fun,
     For,
     If,
-    Nil,
     Or,
     Print,
     Return,
     Super,
     This,
-    True,
     Var,
     While,
 }
@@ -53,6 +53,8 @@ pub enum TokenType {
 pub enum Literal {
     String(String),
     Number(f64),
+    Bool(bool),
+    Nil(),
 }
 
 impl From<&str> for Literal {
