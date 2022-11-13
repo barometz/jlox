@@ -149,3 +149,34 @@ impl<'tokens> Parser<'tokens> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::token::Literal;
+
+    use super::*;
+    #[test]
+    fn parse_plus() {
+        let tokens = [
+            Token::new_literal(TokenType::True, "true", Literal::Bool(true), 0),
+            Token::new(TokenType::Plus, "+", 1),
+            Token::new_literal(TokenType::Number, "6.2", Literal::Number(6.2), 2),
+            Token::new(TokenType::Eof, "", 3),
+        ];
+        let mut under_test = Parser { tokens: &tokens };
+
+        assert_eq!(
+            under_test.parse().unwrap(),
+            Expr::new_binary(
+                Expr::new_literal(Literal::Bool(true)),
+                Token {
+                    token_type: TokenType::Plus,
+                    lexeme: "+".into(),
+                    line: 1,
+                    literal: None
+                },
+                Expr::new_literal(Literal::Number(6.2))
+            )
+        );
+    }
+}

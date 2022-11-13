@@ -86,6 +86,7 @@ use crate::token::{Literal, Token};
 }
 
 fn define_ast(out: &mut dyn Write, grammar: &[Rule]) -> Result<(), std::io::Error> {
+    writeln!(out, "#[derive(Debug, PartialEq)]")?;
     writeln!(out, "pub enum Expr {{")?;
 
     for rule in grammar {

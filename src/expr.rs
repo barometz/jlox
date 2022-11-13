@@ -2,6 +2,7 @@
 
 use crate::token::{Literal, Token};
 
+#[derive(Debug, PartialEq)]
 pub enum Expr {
     Binary {
         lhs: Box<Expr>,
