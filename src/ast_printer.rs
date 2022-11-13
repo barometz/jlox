@@ -26,12 +26,12 @@ impl AstPrinter {
     }
 }
 
-impl<'s> ExprVisitor<'s, String> for AstPrinter {
-    fn visit_binary(&mut self, lhs: &Expr<'s>, operator: &Token<'s>, rhs: &Expr<'s>) -> String {
-        self.parenthesize(operator.lexeme, &[lhs, rhs])
+impl ExprVisitor<String> for AstPrinter {
+    fn visit_binary(&mut self, lhs: &Expr, operator: &Token, rhs: &Expr) -> String {
+        self.parenthesize(&operator.lexeme, &[lhs, rhs])
     }
 
-    fn visit_grouping(&mut self, expression: &Expr<'s>) -> String {
+    fn visit_grouping(&mut self, expression: &Expr) -> String {
         self.parenthesize("group", &[expression])
     }
 
@@ -43,8 +43,8 @@ impl<'s> ExprVisitor<'s, String> for AstPrinter {
         }
     }
 
-    fn visit_unary(&mut self, operator: &Token<'s>, operand: &Expr<'s>) -> String {
-        self.parenthesize(operator.lexeme, &[operand])
+    fn visit_unary(&mut self, operator: &Token, operand: &Expr) -> String {
+        self.parenthesize(&operator.lexeme, &[operand])
     }
 }
 

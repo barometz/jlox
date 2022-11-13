@@ -34,16 +34,16 @@ pub struct ScannerError {
     message: String,
 }
 
-enum ScanResult<'source> {
+enum ScanResult {
     Skip,
     Error(ScannerError),
-    Token(Token<'source>),
+    Token(Token),
 }
 
 pub struct Scanner<'source> {
     /// View of the source that remains to be scanned
     source: &'source str,
-    tokens: Vec<Token<'source>>,
+    tokens: Vec<Token>,
 
     /// Current character in the lexeme being scanned
     current: usize,
@@ -55,13 +55,13 @@ impl<'source> Scanner<'source> {
     pub fn new(source: &'source str) -> Self {
         Scanner {
             source,
-            tokens: Vec::<Token<'source>>::new(),
+            tokens: Vec::<Token>::new(),
             current: 0,
             line: 1,
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Result<Vec<Token<'source>>, Vec<ScannerError>> {
+    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, Vec<ScannerError>> {
         let mut errors = Vec::<ScannerError>::new();
 
         while !self.is_at_end() {
@@ -135,7 +135,7 @@ impl<'source> Scanner<'source> {
         Err(result)
     }
 
-    fn string(&mut self) -> Result<Token<'source>, ScannerError> {
+    fn string(&mut self) -> Result<Token, ScannerError> {
         let mut line = self.line;
 
         // TODO: this can probably be ... more concise
@@ -163,7 +163,7 @@ impl<'source> Scanner<'source> {
         Err(result)
     }
 
-    fn number(&mut self) -> Token<'source> {
+    fn number(&mut self) -> Token {
         while let Some(c) = self.peek() {
             if c.is_ascii_digit() {
                 self.advance();
@@ -194,7 +194,7 @@ impl<'source> Scanner<'source> {
         )
     }
 
-    fn identifier(&mut self) -> Token<'source> {
+    fn identifier(&mut self) -> Token {
         while let Some(c) = self.peek() {
             if c.is_alphanumeric() || c == '_' {
                 self.advance();
@@ -209,7 +209,7 @@ impl<'source> Scanner<'source> {
         }
     }
 
-    fn scan_token(&mut self) -> ScanResult<'source> {
+    fn scan_token(&mut self) -> ScanResult {
         use ScanResult::{Error, Skip, Token};
 
         match self.advance() {
@@ -270,11 +270,11 @@ impl<'source> Scanner<'source> {
         &self.source[..self.current]
     }
 
-    fn new_token(&self, token_type: TokenType) -> Token<'source> {
+    fn new_token(&self, token_type: TokenType) -> Token {
         Token::new(token_type, self.lexeme(), self.line)
     }
 
-    fn new_literal_token(&self, token_type: TokenType, literal: Literal) -> Token<'source> {
+    fn new_literal_token(&self, token_type: TokenType, literal: Literal) -> Token {
         Token::new_literal(token_type, self.lexeme(), literal, self.line)
     }
 }
