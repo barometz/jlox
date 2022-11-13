@@ -4,7 +4,7 @@ use crate::{
 };
 
 // TODO: add multiline pretty-printing
-struct AstPrinter {}
+pub struct AstPrinter {}
 
 impl AstPrinter {
     pub fn print(&mut self, expression: &Expr) -> String {

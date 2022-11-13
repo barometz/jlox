@@ -8,7 +8,7 @@ use std::result::Result;
 /// A recursive descent parser that walks through the available tokens one at a
 /// time, eventually producing an Expr or ParserError.
 pub struct Parser<'tokens> {
-    tokens: &'tokens [Token],
+    pub tokens: &'tokens [Token],
 }
 
 #[derive(thiserror::Error, Debug)]

@@ -15,6 +15,8 @@ mod token;
 enum ELoxError {
     #[error("{0:?}")]
     ScannerError(Vec<scanner::ScannerError>),
+    #[error("{0:}")]
+    ParserError(parser::ParserError),
     #[error(" Failed to read: {0}")]
     FileNotFoundError(std::io::Error),
 }
@@ -29,6 +31,12 @@ struct LoxError {
 impl From<Vec<scanner::ScannerError>> for ELoxError {
     fn from(error: Vec<scanner::ScannerError>) -> Self {
         ELoxError::ScannerError(error)
+    }
+}
+
+impl From<parser::ParserError> for ELoxError {
+    fn from(error: parser::ParserError) -> Self {
+        ELoxError::ParserError(error)
     }
 }
 
@@ -104,10 +112,19 @@ fn run(path: &Path, source: &str) -> Result<(), LoxError> {
 
     match scanner.scan_tokens() {
         Ok(tokens) => {
-            for token in &tokens {
-                println!("{}", token)
+            let mut parser = parser::Parser { tokens: &tokens };
+            match parser.parse() {
+                Ok(expr) => {
+                    // TODO: add non-mutable visitor trait
+                    let mut printer = ast_printer::AstPrinter {};
+                    println!("{}", printer.print(&expr));
+                    Ok(())
+                }
+                Err(err) => Err(LoxError {
+                    path: path.into(),
+                    error: err.into(),
+                }),
             }
-            Ok(())
         }
         Err(errors) => Err(LoxError {
             path: path.into(),
