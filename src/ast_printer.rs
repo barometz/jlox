@@ -4,7 +4,7 @@ use crate::{
 };
 
 // TODO: add multiline pretty-printing
-struct AstPrinter {}
+pub struct AstPrinter {}
 
 impl AstPrinter {
     pub fn print(&mut self, expression: &Expr) -> String {
@@ -36,10 +36,17 @@ impl ExprVisitor<String> for AstPrinter {
     }
 
     fn visit_literal(&mut self, value: &Literal) -> String {
-        // TODO: figure out what to do with nil, for which the book uses Java's null
         match value {
             Literal::String(s) => s.clone(),
             Literal::Number(n) => n.to_string(),
+            Literal::Bool(value) => {
+                if *value {
+                    "true".into()
+                } else {
+                    "false".into()
+                }
+            }
+            Literal::Nil() => "nil".into(),
         }
     }
 
@@ -55,21 +62,14 @@ mod test {
 
     #[test]
     fn print_an_expression() {
-        // Boxing all the elements of the AST may have been a mistake; revisit that
-        let expr = Expr::Binary {
-            lhs: Box::new(Expr::Unary {
-                operator: Box::new(Token::new(TokenType::Plus, "-", 0)),
-                operand: Box::new(Expr::Literal {
-                    value: Box::new(Literal::Number(123.0)),
-                }),
-            }),
-            operator: Box::new(Token::new(TokenType::Plus, "*", 0)),
-            rhs: Box::new(Expr::Grouping {
-                expression: Box::new(Expr::Literal {
-                    value: Box::new(Literal::Number(45.67)),
-                }),
-            }),
-        };
+        let expr = Expr::new_binary(
+            Expr::new_unary(
+                Token::new(TokenType::Minus, "-", 0),
+                Expr::new_literal(Literal::Number(123.0)),
+            ),
+            Token::new(TokenType::Star, "*", 0),
+            Expr::new_grouping(Expr::new_literal(Literal::Number(45.67))),
+        );
 
         assert_eq!(AstPrinter {}.print(&expr), "(* (- 123) (group 45.67))");
     }
