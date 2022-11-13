@@ -55,21 +55,14 @@ mod test {
 
     #[test]
     fn print_an_expression() {
-        // Boxing all the elements of the AST may have been a mistake; revisit that
-        let expr = Expr::Binary {
-            lhs: Box::new(Expr::Unary {
-                operator: Box::new(Token::new(TokenType::Plus, "-", 0)),
-                operand: Box::new(Expr::Literal {
-                    value: Box::new(Literal::Number(123.0)),
-                }),
-            }),
-            operator: Box::new(Token::new(TokenType::Plus, "*", 0)),
-            rhs: Box::new(Expr::Grouping {
-                expression: Box::new(Expr::Literal {
-                    value: Box::new(Literal::Number(45.67)),
-                }),
-            }),
-        };
+        let expr = Expr::new_binary(
+            Expr::new_unary(
+                Token::new(TokenType::Minus, "-", 0),
+                Expr::new_literal(Literal::Number(123.0)),
+            ),
+            Token::new(TokenType::Star, "*", 0),
+            Expr::new_grouping(Expr::new_literal(Literal::Number(45.67))),
+        );
 
         assert_eq!(AstPrinter {}.print(&expr), "(* (- 123) (group 45.67))");
     }
