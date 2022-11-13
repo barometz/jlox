@@ -18,6 +18,11 @@ fn simple_expression() {
 }
 
 #[test]
+fn comma_operator() {
+    source_and_print("5 == 1, 0", "(, (== 5 1) 0)");
+}
+
+#[test]
 fn compound_expression() {
     source_and_print(
         "(4 + 2) / /* comment */ (10.5 * 0)",

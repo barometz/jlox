@@ -70,7 +70,7 @@ impl<'tokens> Parser<'tokens> {
 
     fn expression(&mut self) -> Result<Expr, ParserError> {
         // expression -> equality
-        self.equality()
+        self.comma()
     }
 
     /// Reusable parsing step for rules shaped like
@@ -85,6 +85,11 @@ impl<'tokens> Parser<'tokens> {
             expr = Expr::new_binary(expr, operator, operand(self)?);
         }
         Ok(expr)
+    }
+
+    fn comma(&mut self) -> Result<Expr, ParserError> {
+        // comma -> equality ( "," equality )*
+        self.binary(&Self::equality, &[TokenType::Comma])
     }
 
     fn equality(&mut self) -> Result<Expr, ParserError> {
