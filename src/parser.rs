@@ -14,8 +14,8 @@ pub struct Parser<'tokens> {
 #[derive(thiserror::Error, Debug)]
 #[error("{}: {:?}: {message}", token.line, token.token_type)]
 pub struct ParserError {
-    token: Token,
-    message: String,
+    pub token: Token,
+    pub message: String,
 }
 
 impl<'tokens> Parser<'tokens> {
