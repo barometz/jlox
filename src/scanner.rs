@@ -74,6 +74,8 @@ impl<'source> Scanner<'source> {
             }
         }
 
+        self.tokens.push(self.new_token(TokenType::Eof));
+
         if errors.is_empty() {
             Ok(self.tokens.clone())
         } else {
