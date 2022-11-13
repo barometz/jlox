@@ -10,6 +10,3 @@ Extensions:
 - [ ] distinguish between integers and floats
 - [ ] bitwise negation
 - [x] /* comments */
-
-TODO:
-- [ ] `> 1 + 2 q --> (+ 1 2)`
