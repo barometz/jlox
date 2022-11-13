@@ -62,39 +62,38 @@ impl From<&str> for Literal {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Token<'source> {
+pub struct Token {
     pub token_type: TokenType,
-    pub lexeme: &'source str,
+    // Fun Fact™: In a previous iteration, `lexeme` was a &str slice of the
+    // source text, but it turns out that's really annoying - everything
+    // contains tokens or references to them, including errors which outlive
+    // the source string.
+    pub lexeme: String,
     pub literal: Option<Literal>,
     pub line: usize,
 }
 
-impl<'source> Token<'source> {
-    pub fn new(token_type: TokenType, lexeme: &'source str, line: usize) -> Self {
+impl Token {
+    pub fn new(token_type: TokenType, lexeme: &str, line: usize) -> Self {
         Token {
             token_type,
-            lexeme,
+            lexeme: lexeme.into(),
             literal: None,
             line,
         }
     }
 
-    pub fn new_literal(
-        token_type: TokenType,
-        lexeme: &'source str,
-        literal: Literal,
-        line: usize,
-    ) -> Self {
+    pub fn new_literal(token_type: TokenType, lexeme: &str, literal: Literal, line: usize) -> Self {
         Token {
             token_type,
-            lexeme,
+            lexeme: lexeme.into(),
             literal: Some(literal),
             line,
         }
     }
 }
 
-impl<'source> Display for Token<'source> {
+impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.literal {
             Some(literal) => write!(f, "{:?} {} {:?}", self.token_type, self.lexeme, literal),

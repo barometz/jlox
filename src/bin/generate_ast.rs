@@ -2,10 +2,10 @@ use std::{fs::File, io::Write, path::PathBuf, process::ExitCode};
 
 static EXPRESSION_GRAMMAR: &[&str] = &[
     // "Expr     : Binary | Grouping | Literal | Unary",
-    "Binary   : lhs: Expr<'s>, operator: Token<'s>, rhs: Expr<'s>",
-    "Grouping : expression: Expr<'s>",
+    "Binary   : lhs: Expr, operator: Token, rhs: Expr",
+    "Grouping : expression: Expr",
     "Literal  : value: Literal",
-    "Unary    : operator: Token<'s>, operand: Expr<'s>",
+    "Unary    : operator: Token, operand: Expr",
 ];
 
 struct Symbol {
@@ -79,7 +79,7 @@ fn main() -> ExitCode {
 }
 
 fn define_ast(out: &mut dyn Write, grammar: &[Rule]) -> Result<(), std::io::Error> {
-    writeln!(out, "pub enum Expr<'s> {{")?;
+    writeln!(out, "pub enum Expr {{")?;
 
     for rule in grammar {
         writeln!(out, "    {} {{", rule.head)?;
@@ -99,10 +99,10 @@ fn define_accepter(out: &mut dyn Write, grammar: &[Rule]) -> Result<(), std::io:
     // and it doesn't match the Rust Design Patterns description either.
     // Nevertheless, this seems like a useful way to go about it.
 
-    writeln!(out, "impl<'s> Expr<'s> {{")?;
+    writeln!(out, "impl Expr {{")?;
     writeln!(
         out,
-        "    pub fn accept<R>(&self, visitor: &mut dyn ExprVisitor<'s, R>) -> R {{"
+        "    pub fn accept<R>(&self, visitor: &mut dyn ExprVisitor<R>) -> R {{"
     )?;
     writeln!(out, "        match self {{")?;
 
@@ -131,7 +131,7 @@ fn define_accepter(out: &mut dyn Write, grammar: &[Rule]) -> Result<(), std::io:
 }
 
 fn define_visitor(out: &mut dyn Write, grammar: &[Rule]) -> Result<(), std::io::Error> {
-    writeln!(out, "pub trait ExprVisitor<'s, R> {{")?;
+    writeln!(out, "pub trait ExprVisitor<R> {{")?;
 
     for rule in grammar {
         write!(
