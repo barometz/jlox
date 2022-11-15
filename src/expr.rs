@@ -9,6 +9,13 @@ pub enum Expr {
         operator: Box<Token>,
         rhs: Box<Expr>,
     },
+    Ternary {
+        lhs: Box<Expr>,
+        lho: Box<Token>,
+        mhs: Box<Expr>,
+        rho: Box<Token>,
+        rhs: Box<Expr>,
+    },
     Grouping {
         expression: Box<Expr>,
     },
@@ -24,6 +31,7 @@ impl Expr {
     pub fn accept<R>(&self, visitor: &mut dyn ExprVisitor<R>) -> R {
         match self {
             Expr::Binary { lhs, operator, rhs } => visitor.visit_binary(lhs, operator, rhs),
+            Expr::Ternary { lhs, lho, mhs, rho, rhs } => visitor.visit_ternary(lhs, lho, mhs, rho, rhs),
             Expr::Grouping { expression } => visitor.visit_grouping(expression),
             Expr::Literal { value } => visitor.visit_literal(value),
             Expr::Unary { operator, operand } => visitor.visit_unary(operator, operand),
@@ -31,6 +39,9 @@ impl Expr {
     }
     pub fn new_binary(lhs: Expr, operator: Token, rhs: Expr) -> Expr {
         Expr::Binary { lhs: Box::new(lhs), operator: Box::new(operator), rhs: Box::new(rhs) }
+    }
+    pub fn new_ternary(lhs: Expr, lho: Token, mhs: Expr, rho: Token, rhs: Expr) -> Expr {
+        Expr::Ternary { lhs: Box::new(lhs), lho: Box::new(lho), mhs: Box::new(mhs), rho: Box::new(rho), rhs: Box::new(rhs) }
     }
     pub fn new_grouping(expression: Expr) -> Expr {
         Expr::Grouping { expression: Box::new(expression) }
@@ -44,6 +55,7 @@ impl Expr {
 }
 pub trait ExprVisitor<R> {
     fn visit_binary(&mut self, lhs: &Expr, operator: &Token, rhs: &Expr) -> R;
+    fn visit_ternary(&mut self, lhs: &Expr, lho: &Token, mhs: &Expr, rho: &Token, rhs: &Expr) -> R;
     fn visit_grouping(&mut self, expression: &Expr) -> R;
     fn visit_literal(&mut self, value: &Literal) -> R;
     fn visit_unary(&mut self, operator: &Token, operand: &Expr) -> R;

@@ -31,6 +31,19 @@ impl ExprVisitor<String> for AstPrinter {
         self.parenthesize(&operator.lexeme, &[lhs, rhs])
     }
 
+    fn visit_ternary(
+        &mut self,
+        lhs: &Expr,
+        lho: &Token,
+        mhs: &Expr,
+        rho: &Token,
+        rhs: &Expr,
+    ) -> String {
+        // This is a potentially ambiguous representation, but given that the
+        // only supported ternary operator is ?: we'll probably be fine
+        self.parenthesize(&format!("{}{}", lho.lexeme, rho.lexeme), &[lhs, mhs, rhs])
+    }
+
     fn visit_grouping(&mut self, expression: &Expr) -> String {
         self.parenthesize("group", &[expression])
     }
@@ -72,5 +85,17 @@ mod test {
         );
 
         assert_eq!(AstPrinter {}.print(&expr), "(* (- 123) (group 45.67))");
+    }
+
+    #[test]
+    fn ternary() {
+        let expr = Expr::new_ternary(
+            Expr::new_literal(Literal::Bool(true)),
+            Token::new(TokenType::Interro, "?", 0),
+            Expr::new_literal(Literal::Number(3.14)),
+            Token::new(TokenType::Colon, ":", 0),
+            Expr::new_literal(Literal::Number(6.28)),
+        );
+        assert_eq!(AstPrinter {}.print(&expr), "(?: true 3.14 6.28)");
     }
 }
