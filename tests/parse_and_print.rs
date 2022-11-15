@@ -31,6 +31,16 @@ fn compound_expression() {
 }
 
 #[test]
+fn chained_ternary() {
+    source_and_print("1 ? 2 : 3 ? 4 : 5", "(?: 1 2 (?: 3 4 5))");
+    source_and_print("1 ? 2 ? 3 : 4 : 5", "(?: 1 (?: 2 3 4) 5)");
+    source_and_print("1 ? 2 ? 3 : 4 : 5 ? 6 : 7", "(?: 1 (?: 2 3 4) (?: 5 6 7))");
+    // The inner operand can be any expression, including the otherwise
+    // lower-precedence comma operator.
+    source_and_print("1 ? 2, 3 : 4", "(?: 1 (, 2 3) 4)");
+}
+
+#[test]
 fn endless_group() {
     let error = parse("6 + (!true * ").unwrap_err();
     assert_eq!(

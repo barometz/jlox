@@ -88,8 +88,25 @@ impl<'tokens> Parser<'tokens> {
     }
 
     fn comma(&mut self) -> Result<Expr, ParserError> {
-        // comma -> equality ( "," equality )*
-        self.binary(&Self::equality, &[TokenType::Comma])
+        // comma -> conditional_expression ( "," conditional_expression )*
+        self.binary(&Self::conditional_expression, &[TokenType::Comma])
+    }
+
+    fn conditional_expression(&mut self) -> Result<Expr, ParserError> {
+        // conditional_expression -> equality ( "?" expression ":" conditional_expression )?
+
+        let mut expr = self.equality()?;
+        if let Some(left_hand_operator) = self.match_one_of(&[TokenType::Interro]) {
+            expr = Expr::new_ternary(
+                expr,
+                left_hand_operator,
+                self.expression()?,
+                self.consume(TokenType::Colon, "Expected :")?,
+                self.conditional_expression()?,
+            );
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr, ParserError> {
