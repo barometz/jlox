@@ -3,7 +3,7 @@ use jlox::{self, expr::Expr, parser::ParserError};
 fn parse(source: &str) -> Result<Expr, ParserError> {
     let mut scanner = jlox::scanner::Scanner::new(source);
     let tokens = scanner.scan_tokens().unwrap();
-    jlox::parser::Parser { tokens: &tokens }.parse()
+    jlox::parser::Parser::new(&tokens).parse()
 }
 
 fn source_and_print(source: &str, print: &str) {

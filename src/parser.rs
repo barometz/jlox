@@ -8,7 +8,7 @@ use std::result::Result;
 /// A recursive descent parser that walks through the available tokens one at a
 /// time, eventually producing an Expr or ParserError.
 pub struct Parser<'tokens> {
-    pub tokens: &'tokens [Token],
+    tokens: std::iter::Peekable<std::slice::Iter<'tokens, Token>>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -19,25 +19,29 @@ pub struct ParserError {
 }
 
 impl<'tokens> Parser<'tokens> {
+    pub fn new(tokens: &'tokens [Token]) -> Parser {
+        Parser {
+            tokens: tokens.iter().peekable(),
+        }
+    }
+
     pub fn parse(&mut self) -> Result<Expr, ParserError> {
         self.expression()
     }
 
     /// Return the next token, if any
     fn advance(&mut self) -> Option<Token> {
-        let result = self.tokens.first();
-        self.tokens = &self.tokens[1..];
-        result.cloned()
+        self.tokens.next().cloned()
     }
 
-    fn peek(&self) -> Option<Token> {
-        self.tokens.first().cloned()
+    fn peek(&mut self) -> Option<Token> {
+        self.tokens.peek().cloned().cloned()
     }
 
     /// Return the next token iff it matches one of the provided token types.
     fn match_one_of(&mut self, token_types: &[TokenType]) -> Option<Token> {
         for token_type in token_types {
-            if let Some(token) = self.tokens.first() {
+            if let Some(token) = self.peek() {
                 if token.token_type == *token_type {
                     return self.advance();
                 }
@@ -207,7 +211,7 @@ mod test {
             Token::new_literal(TokenType::Number, "6.2", Literal::Number(6.2), 2),
             Token::new(TokenType::Eof, "", 3),
         ];
-        let mut under_test = Parser { tokens: &tokens };
+        let mut under_test = Parser::new(&tokens);
 
         assert_eq!(
             under_test.parse().unwrap(),
@@ -231,7 +235,7 @@ mod test {
             Token::new_literal(TokenType::Number, "6.2", Literal::Number(6.2), 2),
             Token::new(TokenType::Eof, "", 3),
         ];
-        let mut under_test = Parser { tokens: &tokens };
+        let mut under_test = Parser::new(&tokens);
         // Has anyone made a site for error message gore yet?
         assert_eq!(
             under_test.parse().unwrap_err().message,

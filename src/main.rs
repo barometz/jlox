@@ -111,7 +111,7 @@ fn run(path: &Path, source: &str) -> Result<(), LoxError> {
 
     match scanner.scan_tokens() {
         Ok(tokens) => {
-            let mut parser = parser::Parser { tokens: &tokens };
+            let mut parser = parser::Parser::new(&tokens);
             match parser.parse() {
                 Ok(expr) => {
                     // TODO: add non-mutable visitor trait
