@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err)]
+
 use std::{
     env,
     io::{stdin, Read, Write},
@@ -10,11 +12,11 @@ use jlox::{ast_printer, parser, scanner};
 #[derive(Error, Debug)]
 enum ELoxError {
     #[error("{0:?}")]
-    ScannerError(Vec<scanner::ScannerError>),
+    Scanner(Vec<scanner::ScannerError>),
     #[error("{0:}")]
-    ParserError(parser::ParserError),
+    Parser(parser::ParserError),
     #[error(" Failed to read: {0}")]
-    FileNotFoundError(std::io::Error),
+    FileNotFound(std::io::Error),
 }
 
 #[derive(Error, Debug)]
@@ -26,19 +28,19 @@ struct LoxError {
 
 impl From<Vec<scanner::ScannerError>> for ELoxError {
     fn from(error: Vec<scanner::ScannerError>) -> Self {
-        ELoxError::ScannerError(error)
+        ELoxError::Scanner(error)
     }
 }
 
 impl From<parser::ParserError> for ELoxError {
     fn from(error: parser::ParserError) -> Self {
-        ELoxError::ParserError(error)
+        ELoxError::Parser(error)
     }
 }
 
 impl From<std::io::Error> for ELoxError {
     fn from(error: std::io::Error) -> Self {
-        ELoxError::FileNotFoundError(error)
+        ELoxError::FileNotFound(error)
     }
 }
 
