@@ -238,6 +238,8 @@ impl<'source> Scanner<'source> {
             Some('+') => Token(self.new_token(TokenType::Plus)),
             Some(';') => Token(self.new_token(TokenType::Semicolon)),
             Some('*') => Token(self.new_token(TokenType::Star)),
+            Some('?') => Token(self.new_token(TokenType::Interro)),
+            Some(':') => Token(self.new_token(TokenType::Colon)),
             Some('!') if self.match_next('=') => Token(self.new_token(TokenType::BangEqual)),
             Some('=') if self.match_next('=') => Token(self.new_token(TokenType::EqualEqual)),
             Some('<') if self.match_next('=') => Token(self.new_token(TokenType::LessEqual)),

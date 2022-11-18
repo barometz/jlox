@@ -9,7 +9,10 @@ but this is fine.
 Extensions:
 - [ ] distinguish between integers and floats
 - [ ] bitwise negation
-- [x] /* comments */
 
-TODO:
-- [ ] `> 1 + 2 q --> (+ 1 2)`
+Challenges:
+- Chapter 4:
+    - [x] /* comments */
+- Chapter 6
+    - [x] conditional ? expressions : work, or at least the parser recognizes them.
+    - [x] Appropriate errors for missing left-hand operands to binary operators

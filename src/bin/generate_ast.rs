@@ -4,6 +4,10 @@ use std::{fs::File, io::Write, path::PathBuf, process::ExitCode};
 static EXPRESSION_GRAMMAR: &[&str] = &[
     // "Expr     : Binary | Grouping | Literal | Unary",
     "Binary   : lhs: Expr, operator: Token, rhs: Expr",
+    // Is generically supporting different kinds of ternary operators overkill?
+    // Yes. Having acknowledged that: how often do you get the chance to talk
+    // about a middle-hand side and a left-hand operator?
+    "Ternary  : lhs: Expr, lho: Token, mhs: Expr, rho: Token, rhs: Expr",
     "Grouping : expression: Expr",
     "Literal  : value: Literal",
     "Unary    : operator: Token, operand: Expr",
