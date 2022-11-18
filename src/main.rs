@@ -26,6 +26,18 @@ struct LoxError {
     error: ELoxError,
 }
 
+impl LoxError {
+    fn new<T>(path: &Path, error: T) -> LoxError
+    where
+        ELoxError: From<T>,
+    {
+        LoxError {
+            path: path.to_owned(),
+            error: error.into(),
+        }
+    }
+}
+
 impl From<Vec<scanner::ScannerError>> for ELoxError {
     fn from(error: Vec<scanner::ScannerError>) -> Self {
         ELoxError::Scanner(error)
@@ -73,12 +85,7 @@ fn run_prompt() -> Result<(), LoxError> {
                 Ok(_) => continue,
                 Err(error) => eprintln!("{}", error),
             },
-            Err(error) => {
-                return Err(LoxError {
-                    path: path.into(),
-                    error: error.into(),
-                })
-            }
+            Err(error) => return Err(LoxError::new(path, error)),
         }
     }
 
@@ -93,15 +100,9 @@ fn run_file(path: &str) -> Result<(), LoxError> {
     match std::fs::File::open(&path) {
         Ok(mut file) => match file.read_to_string(&mut source) {
             Ok(_) => run(&path, &source),
-            Err(error) => Err(LoxError {
-                path,
-                error: error.into(),
-            }),
+            Err(error) => Err(LoxError::new(&path, error)),
         },
-        Err(error) => Err(LoxError {
-            path,
-            error: error.into(),
-        }),
+        Err(error) => Err(LoxError::new(&path, error)),
     }
 }
 
@@ -118,15 +119,9 @@ fn run(path: &Path, source: &str) -> Result<(), LoxError> {
                     println!("{}", printer.print(&expr));
                     Ok(())
                 }
-                Err(err) => Err(LoxError {
-                    path: path.into(),
-                    error: err.into(),
-                }),
+                Err(error) => Err(LoxError::new(path, error)),
             }
         }
-        Err(errors) => Err(LoxError {
-            path: path.into(),
-            error: errors.into(),
-        }),
+        Err(errors) => Err(LoxError::new(path, errors)),
     }
 }

@@ -131,7 +131,7 @@ impl<'source> Scanner<'source> {
 
         let result = ScannerError {
             line: self.line,
-            message: "Unterminated block comment".into(),
+            message: "Unterminated block comment".to_owned(),
         };
         self.line = line;
         Err(result)
@@ -159,7 +159,7 @@ impl<'source> Scanner<'source> {
 
         let result = ScannerError {
             line: self.line,
-            message: "Unterminated string".into(),
+            message: "Unterminated string".to_owned(),
         };
         self.line = line;
         Err(result)
@@ -226,7 +226,7 @@ impl<'source> Scanner<'source> {
         match self.advance() {
             None => Error(ScannerError {
                 line: self.line,
-                message: "Expected token".into(),
+                message: "Expected token".to_owned(),
             }),
             Some('(') => Token(self.new_token(TokenType::LeftParen)),
             Some(')') => Token(self.new_token(TokenType::RightParen)),

@@ -215,7 +215,7 @@ mod test {
                 Expr::new_literal(Literal::Bool(true)),
                 Token {
                     token_type: TokenType::Plus,
-                    lexeme: "+".into(),
+                    lexeme: "+".to_owned(),
                     line: 1,
                     literal: None
                 },
