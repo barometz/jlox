@@ -52,14 +52,8 @@ impl ExprVisitor<String> for AstPrinter {
         match value {
             Literal::String(s) => s.clone(),
             Literal::Number(n) => n.to_string(),
-            Literal::Bool(value) => {
-                if *value {
-                    "true".into()
-                } else {
-                    "false".into()
-                }
-            }
-            Literal::Nil() => "nil".into(),
+            Literal::Bool(value) => if *value { "true" } else { "false" }.to_owned(),
+            Literal::Nil() => "nil".to_owned(),
         }
     }
 

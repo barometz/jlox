@@ -2,7 +2,7 @@
 
 use std::{
     env,
-    io::{stdin, Read, Write},
+    io::{stderr, stdin, Read, Write},
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -13,8 +13,8 @@ use jlox::{ast_printer, parser, scanner};
 enum ELoxError {
     #[error("{0:?}")]
     Scanner(Vec<scanner::ScannerError>),
-    #[error("{0:}")]
-    Parser(parser::ParserError),
+    #[error("{0:?}")]
+    Parser(Vec<parser::ParserError>),
     #[error(" Failed to read: {0}")]
     FileNotFound(std::io::Error),
 }
@@ -26,14 +26,42 @@ struct LoxError {
     error: ELoxError,
 }
 
+impl LoxError {
+    fn new<T>(path: &Path, error: T) -> LoxError
+    where
+        ELoxError: From<T>,
+    {
+        LoxError {
+            path: path.to_owned(),
+            error: error.into(),
+        }
+    }
+
+    fn print(&self, out: &mut dyn Write) {
+        match &self.error {
+            ELoxError::Scanner(errors) => {
+                for error in errors {
+                    writeln!(out, "{}", error).unwrap();
+                }
+            }
+            ELoxError::Parser(errors) => {
+                for error in errors {
+                    writeln!(out, "{}", error).unwrap();
+                }
+            }
+            ELoxError::FileNotFound(error) => writeln!(out, "{}", error).unwrap(),
+        }
+    }
+}
+
 impl From<Vec<scanner::ScannerError>> for ELoxError {
     fn from(error: Vec<scanner::ScannerError>) -> Self {
         ELoxError::Scanner(error)
     }
 }
 
-impl From<parser::ParserError> for ELoxError {
-    fn from(error: parser::ParserError) -> Self {
+impl From<Vec<parser::ParserError>> for ELoxError {
+    fn from(error: Vec<parser::ParserError>) -> Self {
         ELoxError::Parser(error)
     }
 }
@@ -56,7 +84,7 @@ fn main() {
     };
 
     if let Err(error) = result {
-        eprintln!("{}", error)
+        error.print(&mut stderr())
     }
 }
 
@@ -71,14 +99,9 @@ fn run_prompt() -> Result<(), LoxError> {
             Ok(0) => break,
             Ok(_) => match run(path, &line) {
                 Ok(_) => continue,
-                Err(error) => eprintln!("{}", error),
+                Err(error) => error.print(&mut stderr()),
             },
-            Err(error) => {
-                return Err(LoxError {
-                    path: path.into(),
-                    error: error.into(),
-                })
-            }
+            Err(error) => return Err(LoxError::new(path, error)),
         }
     }
 
@@ -93,15 +116,9 @@ fn run_file(path: &str) -> Result<(), LoxError> {
     match std::fs::File::open(&path) {
         Ok(mut file) => match file.read_to_string(&mut source) {
             Ok(_) => run(&path, &source),
-            Err(error) => Err(LoxError {
-                path,
-                error: error.into(),
-            }),
+            Err(error) => Err(LoxError::new(&path, error)),
         },
-        Err(error) => Err(LoxError {
-            path,
-            error: error.into(),
-        }),
+        Err(error) => Err(LoxError::new(&path, error)),
     }
 }
 
@@ -110,7 +127,7 @@ fn run(path: &Path, source: &str) -> Result<(), LoxError> {
 
     match scanner.scan_tokens() {
         Ok(tokens) => {
-            let mut parser = parser::Parser { tokens: &tokens };
+            let mut parser = parser::Parser::new(&tokens);
             match parser.parse() {
                 Ok(expr) => {
                     // TODO: add non-mutable visitor trait
@@ -118,15 +135,9 @@ fn run(path: &Path, source: &str) -> Result<(), LoxError> {
                     println!("{}", printer.print(&expr));
                     Ok(())
                 }
-                Err(err) => Err(LoxError {
-                    path: path.into(),
-                    error: err.into(),
-                }),
+                Err(error) => Err(LoxError::new(path, error)),
             }
         }
-        Err(errors) => Err(LoxError {
-            path: path.into(),
-            error: errors.into(),
-        }),
+        Err(errors) => Err(LoxError::new(path, errors)),
     }
 }

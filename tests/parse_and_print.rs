@@ -1,9 +1,9 @@
 use jlox::{self, expr::Expr, parser::ParserError};
 
-fn parse(source: &str) -> Result<Expr, ParserError> {
+fn parse(source: &str) -> Result<Expr, Vec<ParserError>> {
     let mut scanner = jlox::scanner::Scanner::new(source);
     let tokens = scanner.scan_tokens().unwrap();
-    jlox::parser::Parser { tokens: &tokens }.parse()
+    jlox::parser::Parser::new(&tokens).parse()
 }
 
 fn source_and_print(source: &str, print: &str) {
@@ -44,7 +44,7 @@ fn chained_ternary() {
 fn endless_group() {
     let error = parse("6 + (!true * ").unwrap_err();
     assert_eq!(
-        error.message,
+        error[0].message,
         "Unexpected end of file. Expected one of Number, String, True, False, Nil, or (Expr)"
     );
 }
@@ -53,7 +53,7 @@ fn endless_group() {
 fn incomplete_binary() {
     let error = parse("(6 + )").unwrap_err();
     assert_eq!(
-        error.message,
+        error[0].message,
         "Unexpected token ')'. Expected one of Number, String, True, False, Nil, or (Expr)"
     );
 }
@@ -61,5 +61,8 @@ fn incomplete_binary() {
 #[test]
 fn unexpected_identifier() {
     let error = parse("(5 + 4 q)").unwrap_err();
-    assert_eq!(error.message, "Unexpected token 'q'. Unterminated (Expr)");
+    assert_eq!(
+        error[0].message,
+        "Unexpected token 'q'. Unterminated (Expr)"
+    );
 }

@@ -3,15 +3,16 @@ use crate::{
     token::{Token, TokenType},
 };
 
-use std::result::Result;
+use std::{mem::swap, result::Result};
 
 /// A recursive descent parser that walks through the available tokens one at a
 /// time, eventually producing an Expr or ParserError.
 pub struct Parser<'tokens> {
-    pub tokens: &'tokens [Token],
+    tokens: std::iter::Peekable<std::slice::Iter<'tokens, Token>>,
+    errors: Vec<ParserError>,
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 #[error("{}: {:?}: {message}", token.line, token.token_type)]
 pub struct ParserError {
     pub token: Token,
@@ -19,25 +20,47 @@ pub struct ParserError {
 }
 
 impl<'tokens> Parser<'tokens> {
-    pub fn parse(&mut self) -> Result<Expr, ParserError> {
-        self.expression()
+    pub fn new(tokens: &'tokens [Token]) -> Parser {
+        Parser {
+            tokens: tokens.iter().peekable(),
+            errors: Vec::<ParserError>::new(),
+        }
+    }
+
+    fn parser_error<T>(
+        &mut self,
+        token: Token,
+        message: String,
+    ) -> std::result::Result<T, ParserError> {
+        let error = ParserError {
+            token,
+            message: message.to_owned(),
+        };
+        self.errors.push(error.clone());
+        Err(error)
+    }
+
+    pub fn parse(&mut self) -> Result<Expr, Vec<ParserError>> {
+        if let Ok(expr) = self.expression() {
+            Ok(expr)
+        } else {
+            Err(self.errors.clone())
+        }
     }
 
     /// Return the next token, if any
     fn advance(&mut self) -> Option<Token> {
-        let result = self.tokens.first();
-        self.tokens = &self.tokens[1..];
-        result.cloned()
+        self.tokens.next().cloned()
     }
 
-    fn peek(&self) -> Option<Token> {
-        self.tokens.first().cloned()
+    fn peek(&mut self) -> Option<Token> {
+        self.tokens.peek().cloned().cloned()
     }
 
     /// Return the next token iff it matches one of the provided token types.
     fn match_one_of(&mut self, token_types: &[TokenType]) -> Option<Token> {
         for token_type in token_types {
-            if let Some(token) = self.tokens.first() {
+            if let Some(token) = self.peek() {
                 if token.token_type == *token_type {
                     return self.advance();
                 }
@@ -52,16 +75,12 @@ impl<'tokens> Parser<'tokens> {
         match self.peek() {
             Some(token) if token.token_type == token_type => Ok(self.advance().unwrap()),
             Some(token) => match token.token_type {
-                TokenType::Eof => Err(ParserError {
-                    token,
-                    message: format!("Unexpected end of file. {}", message),
-                }),
+                TokenType::Eof => {
+                    self.parser_error(token, format!("Unexpected end of file. {}", message))
+                }
                 _ => {
                     let lexeme: String = token.lexeme.clone();
-                    Err(ParserError {
-                        token,
-                        message: format!("Unexpected token '{}'. {}", lexeme, message),
-                    })
+                    self.parser_error(token, format!("Unexpected token '{}'. {}", lexeme, message))
                 }
             },
             None => panic!("Unexpected end of token stream"),
@@ -89,19 +108,13 @@ impl<'tokens> Parser<'tokens> {
             }
             Err(err) => {
                 if let Some(operator) = self.match_one_of(operators) {
-                    // discard right-hand operand ("also parse and discard a
-                    // right-hand operand", quoth the book, but there's not much
-                    // point as long as the parser bails at the first error.)
-                    // TODO: on that note, make it possible to emit multiple parser errors
+                    // parse & discard right-hand operand for diagnostic output, I guess?
                     let _ = operand(self);
                     let lexeme = operator.lexeme.to_owned();
-                    Err(ParserError {
-                        token: operator,
-                        message: format!(
-                            "Failed to parse left-hand operator for '{}': {}",
-                            &lexeme, err
-                        ),
-                    })
+                    self.parser_error(
+                        operator,
+                        format!("Failed to parse left-hand operator for '{}'", &lexeme),
+                    )
                 } else {
                     Err(err)
                 }
@@ -207,7 +220,7 @@ mod test {
             Token::new_literal(TokenType::Number, "6.2", Literal::Number(6.2), 2),
             Token::new(TokenType::Eof, "", 3),
         ];
-        let mut under_test = Parser { tokens: &tokens };
+        let mut under_test = Parser::new(&tokens);
 
         assert_eq!(
             under_test.parse().unwrap(),
@@ -215,7 +228,7 @@ mod test {
                 Expr::new_literal(Literal::Bool(true)),
                 Token {
                     token_type: TokenType::Plus,
-                    lexeme: "+".into(),
+                    lexeme: "+".to_owned(),
                     line: 1,
                     literal: None
                 },
@@ -231,11 +244,10 @@ mod test {
             Token::new_literal(TokenType::Number, "6.2", Literal::Number(6.2), 2),
             Token::new(TokenType::Eof, "", 3),
         ];
-        let mut under_test = Parser { tokens: &tokens };
-        // Has anyone made a site for error message gore yet?
+        let mut under_test = Parser::new(&tokens);
         assert_eq!(
-            under_test.parse().unwrap_err().message,
-            "Failed to parse left-hand operator for '+': 1: Plus: Unexpected token '+'. Expected one of Number, String, True, False, Nil, or (Expr)"
+            under_test.parse().unwrap_err().last().unwrap().message,
+            "Failed to parse left-hand operator for '+'"
         );
     }
 }
