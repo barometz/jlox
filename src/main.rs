@@ -2,7 +2,7 @@
 
 use std::{
     env,
-    io::{stdin, Read, Write},
+    io::{stderr, stdin, Read, Write},
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -13,8 +13,8 @@ use jlox::{ast_printer, parser, scanner};
 enum ELoxError {
     #[error("{0:?}")]
     Scanner(Vec<scanner::ScannerError>),
-    #[error("{0:}")]
-    Parser(parser::ParserError),
+    #[error("{0:?}")]
+    Parser(Vec<parser::ParserError>),
     #[error(" Failed to read: {0}")]
     FileNotFound(std::io::Error),
 }
@@ -36,6 +36,22 @@ impl LoxError {
             error: error.into(),
         }
     }
+
+    fn print(&self, out: &mut dyn Write) {
+        match &self.error {
+            ELoxError::Scanner(errors) => {
+                for error in errors {
+                    writeln!(out, "{}", error).unwrap();
+                }
+            }
+            ELoxError::Parser(errors) => {
+                for error in errors {
+                    writeln!(out, "{}", error).unwrap();
+                }
+            }
+            ELoxError::FileNotFound(error) => writeln!(out, "{}", error).unwrap(),
+        }
+    }
 }
 
 impl From<Vec<scanner::ScannerError>> for ELoxError {
@@ -44,8 +60,8 @@ impl From<Vec<scanner::ScannerError>> for ELoxError {
     }
 }
 
-impl From<parser::ParserError> for ELoxError {
-    fn from(error: parser::ParserError) -> Self {
+impl From<Vec<parser::ParserError>> for ELoxError {
+    fn from(error: Vec<parser::ParserError>) -> Self {
         ELoxError::Parser(error)
     }
 }
@@ -68,7 +84,7 @@ fn main() {
     };
 
     if let Err(error) = result {
-        eprintln!("{}", error)
+        error.print(&mut stderr())
     }
 }
 
@@ -83,7 +99,7 @@ fn run_prompt() -> Result<(), LoxError> {
             Ok(0) => break,
             Ok(_) => match run(path, &line) {
                 Ok(_) => continue,
-                Err(error) => eprintln!("{}", error),
+                Err(error) => error.print(&mut stderr()),
             },
             Err(error) => return Err(LoxError::new(path, error)),
         }
