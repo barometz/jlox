@@ -80,11 +80,33 @@ impl<'tokens> Parser<'tokens> {
         operand: &dyn Fn(&mut Self) -> Result<Expr, ParserError>,
         operators: &[TokenType],
     ) -> Result<Expr, ParserError> {
-        let mut expr = operand(self)?;
-        while let Some(operator) = self.match_one_of(operators) {
-            expr = Expr::new_binary(expr, operator, operand(self)?);
+        match operand(self) {
+            Ok(mut expr) => {
+                while let Some(operator) = self.match_one_of(operators) {
+                    expr = Expr::new_binary(expr, operator, operand(self)?);
+                }
+                Ok(expr)
+            }
+            Err(err) => {
+                if let Some(operator) = self.match_one_of(operators) {
+                    // discard right-hand operand ("also parse and discard a
+                    // right-hand operand", quoth the book, but there's not much
+                    // point as long as the parser bails at the first error.)
+                    // TODO: on that note, make it possible to emit multiple parser errors
+                    let _ = operand(self);
+                    let lexeme = operator.lexeme.to_owned();
+                    Err(ParserError {
+                        token: operator,
+                        message: format!(
+                            "Failed to parse left-hand operator for '{}': {}",
+                            &lexeme, err
+                        ),
+                    })
+                } else {
+                    Err(err)
+                }
+            }
         }
-        Ok(expr)
     }
 
     fn comma(&mut self) -> Result<Expr, ParserError> {
@@ -199,6 +221,21 @@ mod test {
                 },
                 Expr::new_literal(Literal::Number(6.2))
             )
+        );
+    }
+
+    #[test]
+    fn binary_missing_operand() {
+        let tokens = [
+            Token::new(TokenType::Plus, "+", 1),
+            Token::new_literal(TokenType::Number, "6.2", Literal::Number(6.2), 2),
+            Token::new(TokenType::Eof, "", 3),
+        ];
+        let mut under_test = Parser { tokens: &tokens };
+        // Has anyone made a site for error message gore yet?
+        assert_eq!(
+            under_test.parse().unwrap_err().message,
+            "Failed to parse left-hand operator for '+': 1: Plus: Unexpected token '+'. Expected one of Number, String, True, False, Nil, or (Expr)"
         );
     }
 }
